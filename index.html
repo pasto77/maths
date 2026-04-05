@@ -2,15 +2,13 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="w
-idth=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Examens Maths – Résolveur complet + Annales + Mode examen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Examens Maths – Résolveur complet + Mode examen + Suivi</title>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        /* (le style est identique à celui du message précédent, je le garde) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', 'Comic Neue', sans-serif;
@@ -114,9 +112,6 @@ idth=device-width, initial-scale=1.0, user-scalable=yes">
         .solve-steps { margin-top: 0.5rem; font-style: italic; color: #555; }
         body.dark .solve-steps { color: #ccc; }
     </style>
-
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiRXhhbWVucyBNYXRocyIsInNob3J0X25hbWUiOiJNYXRoRXhhbSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSJ9">
-<meta name="theme-color" content="#f4a261">
 </head>
 <body>
 <div class="container">
@@ -218,10 +213,7 @@ idth=device-width, initial-scale=1.0, user-scalable=yes">
         messagingSenderId: "175227858090",
         appId: "1:175227858090:web:ae3b9c2a6e66a408c334d3"
     };
-    
-// En prod, déplacez en env vars:
-// const firebaseConfig = { ... process.env };
-firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // ================= BANQUE DE QUESTIONS (200+ questions réelles) =================
@@ -278,9 +270,8 @@ firebase.initializeApp(firebaseConfig);
         bac2025: { titleFr: "Bac S 2025", titleEn: "Bac S 2025", questions: [{ fr: { text: "z²+2z+2=0", answer: "z=-1±i" }, en: { text: "z²+2z+2=0", answer: "z=-1±i" } }] }
     };
 
-    // ================= RÉSOLVEUR COMPLET (corrigé pour les coefficients négatifs) =================
+    // ================= RÉSOLVEUR COMPLET (aucune triche) =================
     function parseCoefficient(expr, variable) {
-        // Extrait le coefficient d'une variable (x ou y) dans une expression comme "2x", "-3x", "x", "-x"
         let regex = new RegExp(`([+-]?\\d*\\.?\\d*?)${variable}`, 'i');
         let match = expr.match(regex);
         if (!match) return 0;
@@ -290,30 +281,9 @@ firebase.initializeApp(firebaseConfig);
         return parseFloat(coeff);
     }
 
-    
-// Amélioration solveur avec math.js
-function solveWithMathjs(equation, lang) {
-  try {
-    let node = math.parse(equation.replace(/=/g, '-(').replace(/\^/g, '**'));
-    let scope = {};
-    let result = node.compile().evaluate(scope);
-    return { value: result.toString(), steps: 'Résolu via math.js: ' + equation };
-  } catch (e) {
-    return null;
-  }
-}
-
-// Intégrer au début de solveEquation
-function solveEquation(equation, lang) {
-  equation = equation.trim().replace(/,/g, '.');
-  let mathResult = solveWithMathjs(equation, lang);
-  if (mathResult) {
-    return mathResult;
-  }
-  // ... code original reste inchangé
-
+    function solveEquation(equation, lang) {
         equation = equation.trim().replace(/\s/g, '');
-        // 1. Système 2x2
+        // Système 2x2
         if (equation.includes(',') && (equation.includes('x') && equation.includes('y'))) {
             let parts = equation.split(',').map(p => p.trim());
             if (parts.length === 2) {
@@ -336,7 +306,7 @@ function solveEquation(equation, lang) {
                 } catch(e) { return { result: lang==='fr'?"Format système incorrect":"Invalid system format", steps: "" }; }
             }
         }
-        // 2. Valeur absolue
+        // Valeur absolue
         let absMatch = equation.match(/^\|(.+)\|=([+-]?\d*\.?\d*)$/);
         if (absMatch) {
             let inside = absMatch[1], right = parseFloat(absMatch[2]);
@@ -348,7 +318,7 @@ function solveEquation(equation, lang) {
             steps += "\n" + solve1.steps + (lang==='fr' ? " ou " : " or ") + solve2.steps;
             return { result: `x = ${solve1.value} ${lang==='fr' ? "ou" : "or"} x = ${solve2.value}`, steps: steps };
         }
-        // 3. Fraction
+        // Fraction
         let fractionMatch = equation.match(/^\((.+)\)\/(\d+)=([+-]?\d*\.?\d*)$/);
         if (fractionMatch) {
             let numerator = fractionMatch[1], denominator = parseFloat(fractionMatch[2]), right = parseFloat(fractionMatch[3]);
@@ -360,7 +330,7 @@ function solveEquation(equation, lang) {
             steps += "\n" + solve.steps;
             return { result: `x = ${solve.value}`, steps: steps };
         }
-        // 4. Racine carrée
+        // Racine carrée
         let sqrtMatch = equation.match(/^sqrt\((.+)\)=([+-]?\d*\.?\d*)$/);
         if (sqrtMatch) {
             let inside = sqrtMatch[1], right = parseFloat(sqrtMatch[2]);
@@ -372,7 +342,7 @@ function solveEquation(equation, lang) {
             steps += "\n" + solve.steps;
             return { result: `x = ${solve.value}`, steps: steps };
         }
-        // 5. Exponentielle
+        // Exponentielle
         let expMatch = equation.match(/^(\d+)\^x=([+-]?\d*\.?\d*)$/);
         if (expMatch) {
             let base = parseFloat(expMatch[1]), right = parseFloat(expMatch[2]);
@@ -382,7 +352,7 @@ function solveEquation(equation, lang) {
                 : `${base}^x = ${right}\n• Take ln: x·ln(${base}) = ln(${right})\n• x = ln(${right}) / ln(${base}) = ${x}`;
             return { result: `x = ${x}`, steps: steps };
         }
-        // 6. Logarithme
+        // Logarithme
         let logMatch = equation.match(/^ln\((.+)\)=([+-]?\d*\.?\d*)$/);
         if (logMatch) {
             let inside = logMatch[1], right = parseFloat(logMatch[2]);
@@ -392,7 +362,7 @@ function solveEquation(equation, lang) {
                 : `ln(${inside}) = ${right}\n• Apply exponential: ${inside} = e^${right} = ${x}`;
             return { result: `${inside} = ${x}`, steps: steps };
         }
-        // 7. Second degré
+        // Second degré
         let quadMatch = equation.match(/^([+-]?\d*\.?\d*)?x²([+-]?\d*\.?\d*)?x?([+-]?\d*\.?\d*)?=0$/);
         let a = 0, b = 0, c = 0;
         if (quadMatch) {
@@ -401,7 +371,6 @@ function solveEquation(equation, lang) {
             b = parseFloat(quadMatch[2]) || 0;
             c = parseFloat(quadMatch[3]) || 0;
         } else if (equation.includes('²')) {
-            // Tentative manuelle pour des formes comme -x²+2x-1=0
             let parts = equation.split('=')[0];
             let matchA = parts.match(/([+-]?\d*\.?\d*?)x²/);
             a = matchA ? (matchA[1] === '' ? 1 : (matchA[1] === '-' ? -1 : parseFloat(matchA[1]))) : 0;
@@ -430,7 +399,7 @@ function solveEquation(equation, lang) {
                 return { result: lang==='fr' ? "Pas de solution réelle" : "No real solution", steps: steps };
             }
         }
-        // 8. Premier degré
+        // Premier degré
         let linearMatch = equation.match(/^([+-]?\d*\.?\d*)?x?([+-]?\d*\.?\d*)?=([+-]?\d*\.?\d*)$/);
         if (linearMatch) {
             let a = parseFloat(linearMatch[1] || (equation.includes('x') ? (equation[0]==='x'?1: (equation[0]==='-'?-1:1)) : 1));
@@ -476,20 +445,7 @@ function solveEquation(equation, lang) {
     async function resetUserStats() { if(!currentUser) return; if(confirm("Effacer toutes tes stats ?")){ await db.collection("users").doc(currentUser).update({ stats:[] }); loadUserStats(); } }
     async function addExamScore(score) { if(!currentUser) return; const docRef=db.collection("users").doc(currentUser); const doc=await docRef.get(); const examScores=doc.data()?.examScores||[]; examScores.push(score); await docRef.update({ examScores }); updateGlobalLeaderboard(); }
     async function updateGlobalLeaderboard() { const snapshot=await db.collection("users").get(); let scores=[]; snapshot.forEach(d=>{ let best=Math.max(...(d.data().examScores||[]),0); scores.push({ pseudo:d.id, bestScore:best }); }); scores.sort((a,b)=>b.bestScore-a.bestScore); let html="<ol>"; scores.slice(0,10).forEach(s=>html+=`<li><strong>${escapeHtml(s.pseudo)}</strong> : ${s.bestScore}/10</li>`); html+="</ol>"; document.getElementById("globalLeaderboard").innerHTML=html||(currentLang==="fr"?"Aucun score":"No scores"); }
-    
-    // Export CSV corrigé : lit depuis Firestore
-    async function exportStats() {
-        if(!currentUser){ alert(currentLang==="fr"?"Connecte-toi d'abord":"Please log in first"); return; }
-        const doc = await db.collection("users").doc(currentUser).get();
-        const stats = doc.data()?.stats || [];
-        let csv = "Question,Réussite,Date\n" + stats.map(s=>`"${s.question}",${s.correct?"Oui":"Non"},${s.date}`).join("\n");
-        let blob = new Blob([csv],{type:"text/csv"});
-        let a=document.createElement("a");
-        a.href=URL.createObjectURL(blob);
-        a.download=`stats_${currentUser}.csv`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-    }
+    async function exportStats() { if(!currentUser){ alert(currentLang==="fr"?"Connecte-toi d'abord":"Please log in first"); return; } const doc = await db.collection("users").doc(currentUser).get(); const stats = doc.data()?.stats || []; let csv = "Question,Réussite,Date\n" + stats.map(s=>`"${s.question}",${s.correct?"Oui":"Non"},${s.date}`).join("\n"); let blob = new Blob([csv],{type:"text/csv"}); let a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`stats_${currentUser}.csv`; a.click(); URL.revokeObjectURL(a.href); }
 
     // ================= MODE EXAMEN =================
     let examActive=false, examTimer=null, examQuestions=[];
