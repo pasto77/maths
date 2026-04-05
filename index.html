@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="w
+idth=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Examens Maths – Résolveur complet + Annales + Mode examen</title>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -113,6 +114,9 @@
         .solve-steps { margin-top: 0.5rem; font-style: italic; color: #555; }
         body.dark .solve-steps { color: #ccc; }
     </style>
+
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiRXhhbWVucyBNYXRocyIsInNob3J0X25hbWUiOiJNYXRoRXhhbSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSJ9">
+<meta name="theme-color" content="#f4a261">
 </head>
 <body>
 <div class="container">
@@ -214,7 +218,10 @@
         messagingSenderId: "175227858090",
         appId: "1:175227858090:web:ae3b9c2a6e66a408c334d3"
     };
-    firebase.initializeApp(firebaseConfig);
+    
+// En prod, déplacez en env vars:
+// const firebaseConfig = { ... process.env };
+firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // ================= BANQUE DE QUESTIONS (200+ questions réelles) =================
@@ -283,7 +290,28 @@
         return parseFloat(coeff);
     }
 
-    function solveEquation(equation, lang) {
+    
+// Amélioration solveur avec math.js
+function solveWithMathjs(equation, lang) {
+  try {
+    let node = math.parse(equation.replace(/=/g, '-(').replace(/\^/g, '**'));
+    let scope = {};
+    let result = node.compile().evaluate(scope);
+    return { value: result.toString(), steps: 'Résolu via math.js: ' + equation };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Intégrer au début de solveEquation
+function solveEquation(equation, lang) {
+  equation = equation.trim().replace(/,/g, '.');
+  let mathResult = solveWithMathjs(equation, lang);
+  if (mathResult) {
+    return mathResult;
+  }
+  // ... code original reste inchangé
+
         equation = equation.trim().replace(/\s/g, '');
         // 1. Système 2x2
         if (equation.includes(',') && (equation.includes('x') && equation.includes('y'))) {
