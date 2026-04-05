@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Examens Maths – Résolveur complet + Mode examen + Suivi</title>
+    <title>Examens Maths – BEPC / Probatoire / Bac</title>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
+        /* Styles identiques à la version précédente (je les reprends pour gagner de la place) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', 'Comic Neue', sans-serif;
@@ -26,7 +27,7 @@
             background: rgba(30,40,40,0.95);
             border-color: #4a6a5a;
         }
-        body.dark .question-text, body.dark .forum-message, body.dark .solve-result {
+        body.dark .question-text, body.dark .forum-message {
             background: #2a3a3a;
             color: #eee;
         }
@@ -105,19 +106,15 @@
         body.dark .leaderboard-card { background: #3a2a4a; border-color: #9C27B0; }
         .export-btn { background: #4CAF50; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 30px; cursor: pointer; margin-left: 1rem; font-size: 0.8rem; }
         .chart-container { max-width: 300px; margin: 1rem auto; }
-        .solver-card { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); border: 3px solid #00acc1; }
-        body.dark .solver-card { background: #2a4a5a; border-color: #00acc1; }
-        .solve-input { width: 100%; padding: 0.8rem; border-radius: 28px; border: 2px solid #ffd966; font-size: 1rem; margin-bottom: 0.5rem; background: white; }
-        .solve-result { margin-top: 1rem; background: #fef4e8; border-radius: 24px; padding: 1rem; border-left: 6px solid #2b7a4b; display: none; }
-        .solve-steps { margin-top: 0.5rem; font-style: italic; color: #555; }
-        body.dark .solve-steps { color: #ccc; }
+        .solver-link { display: inline-block; background: #00acc1; color: white; padding: 0.6rem 1.2rem; border-radius: 40px; text-decoration: none; font-weight: bold; margin-top: 0.5rem; }
+        body.dark .solver-link { background: #008394; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <h1 id="siteTitle">📚 Examens Maths – BEPC / Probatoire / Bac</h1>
-        <div class="slogan" id="siteSlogan">🎯 Résolveur complet + mode examen + suivi des progrès – 100% gratuit</div>
+        <div class="slogan" id="siteSlogan">🎯 Annales + mode examen + suivi des progrès – 100% gratuit</div>
     </div>
     <div class="top-bar">
         <div class="user-bar">
@@ -135,12 +132,11 @@
     <div class="main-grid">
         <!-- Colonne gauche -->
         <div>
-            <div class="card solver-card">
-                <h2 id="solverTitle">🧮 Résolveur avancé</h2>
-                <input type="text" id="equationInput" class="solve-input" placeholder='Ex: 2x+5=13 | x²-5x+6=0 | x+y=5,x-y=1 | (2x+1)/3=5 | sqrt(x+2)=4 | 2^x=8 | ln(x)=2 | |x-2|=3'>
-                <button id="solveBtn" class="generate-btn">🔍 Résoudre avec démonstration</button>
-                <div id="solveResult" class="solve-result"></div>
-                <div class="small-text">💡 Équations 1er/2nd degré, systèmes 2×2, fractions, racines, exponentielles, logarithmes, valeur absolue</div>
+            <div class="card">
+                <h2 id="solverTitle">🧮 Besoin d'aide pour résoudre une équation ?</h2>
+                <p>Utilise notre outil externe gratuit :</p>
+                <a href="https://www.symbolab.com/solver/equation-calculator" target="_blank" class="solver-link">🔗 Résoudre avec Symbolab</a>
+                <div class="small-text" style="margin-top:0.8rem;">💡 Ouvre un nouvel onglet, entre ton équation, et obtiens la solution pas à pas.</div>
             </div>
             <div class="card">
                 <h2><span id="progressTitle">📊 Mes Progrès</span> <button id="exportStatsBtn" class="export-btn">📎 Exporter CSV</button></h2>
@@ -200,7 +196,7 @@
             </div>
         </div>
     </div>
-    <footer id="footerText">🧡 Gratuit – Résolveur complet + mode examen + suivi. Entraîne-toi et progresse !</footer>
+    <footer id="footerText">🧡 Gratuit – Mode examen + exercices corrigés + suivi. Entraîne-toi et progresse !</footer>
 </div>
 
 <script>
@@ -270,161 +266,6 @@
         bac2025: { titleFr: "Bac S 2025", titleEn: "Bac S 2025", questions: [{ fr: { text: "z²+2z+2=0", answer: "z=-1±i" }, en: { text: "z²+2z+2=0", answer: "z=-1±i" } }] }
     };
 
-    // ================= RÉSOLVEUR COMPLET (aucune triche) =================
-    function parseCoefficient(expr, variable) {
-        let regex = new RegExp(`([+-]?\\d*\\.?\\d*?)${variable}`, 'i');
-        let match = expr.match(regex);
-        if (!match) return 0;
-        let coeff = match[1];
-        if (coeff === '+' || coeff === '') return 1;
-        if (coeff === '-') return -1;
-        return parseFloat(coeff);
-    }
-
-    function solveEquation(equation, lang) {
-        equation = equation.trim().replace(/\s/g, '');
-        // Système 2x2
-        if (equation.includes(',') && (equation.includes('x') && equation.includes('y'))) {
-            let parts = equation.split(',').map(p => p.trim());
-            if (parts.length === 2) {
-                let eq1 = parts[0], eq2 = parts[1];
-                try {
-                    let a1 = parseCoefficient(eq1, 'x');
-                    let b1 = parseCoefficient(eq1, 'y');
-                    let c1 = parseFloat(eq1.split('=')[1]);
-                    let a2 = parseCoefficient(eq2, 'x');
-                    let b2 = parseCoefficient(eq2, 'y');
-                    let c2 = parseFloat(eq2.split('=')[1]);
-                    let det = a1*b2 - a2*b1;
-                    if (det === 0) return { result: lang==='fr'?"Système impossible ou indéterminé":"System impossible or indeterminate", steps: "" };
-                    let x = (c1*b2 - c2*b1) / det;
-                    let y = (a1*c2 - a2*c1) / det;
-                    let steps = lang==='fr'
-                        ? `Système : ${eq1} et ${eq2}\n• Dét = ${a1}×${b2} - ${a2}×${b1} = ${det}\n• x = (${c1}×${b2} - ${c2}×${b1}) / ${det} = ${x}\n• y = (${a1}×${c2} - ${a2}×${c1}) / ${det} = ${y}`
-                        : `System: ${eq1} and ${eq2}\n• Det = ${a1}×${b2} - ${a2}×${b1} = ${det}\n• x = (${c1}×${b2} - ${c2}×${b1}) / ${det} = ${x}\n• y = (${a1}×${c2} - ${a2}×${c1}) / ${det} = ${y}`;
-                    return { result: `x = ${x}, y = ${y}`, steps: steps };
-                } catch(e) { return { result: lang==='fr'?"Format système incorrect":"Invalid system format", steps: "" }; }
-            }
-        }
-        // Valeur absolue
-        let absMatch = equation.match(/^\|(.+)\|=([+-]?\d*\.?\d*)$/);
-        if (absMatch) {
-            let inside = absMatch[1], right = parseFloat(absMatch[2]);
-            let steps = lang==='fr' 
-                ? `|${inside}| = ${right}\n• Deux cas : ${inside} = ${right} ou ${inside} = -${right}`
-                : `|${inside}| = ${right}\n• Two cases: ${inside} = ${right} or ${inside} = -${right}`;
-            let solve1 = solveSimpleLinear(`${inside}=${right}`, lang);
-            let solve2 = solveSimpleLinear(`${inside}=-${right}`, lang);
-            steps += "\n" + solve1.steps + (lang==='fr' ? " ou " : " or ") + solve2.steps;
-            return { result: `x = ${solve1.value} ${lang==='fr' ? "ou" : "or"} x = ${solve2.value}`, steps: steps };
-        }
-        // Fraction
-        let fractionMatch = equation.match(/^\((.+)\)\/(\d+)=([+-]?\d*\.?\d*)$/);
-        if (fractionMatch) {
-            let numerator = fractionMatch[1], denominator = parseFloat(fractionMatch[2]), right = parseFloat(fractionMatch[3]);
-            let steps = lang==='fr'
-                ? `${numerator}/${denominator} = ${right}\n• Multiplions par ${denominator} : ${numerator} = ${right*denominator}`
-                : `${numerator}/${denominator} = ${right}\n• Multiply by ${denominator}: ${numerator} = ${right*denominator}`;
-            let simpleEq = `${numerator}=${right*denominator}`;
-            let solve = solveSimpleLinear(simpleEq, lang);
-            steps += "\n" + solve.steps;
-            return { result: `x = ${solve.value}`, steps: steps };
-        }
-        // Racine carrée
-        let sqrtMatch = equation.match(/^sqrt\((.+)\)=([+-]?\d*\.?\d*)$/);
-        if (sqrtMatch) {
-            let inside = sqrtMatch[1], right = parseFloat(sqrtMatch[2]);
-            let steps = lang==='fr'
-                ? `√(${inside}) = ${right}\n• Élevons au carré : ${inside} = ${right*right}`
-                : `√(${inside}) = ${right}\n• Square both sides: ${inside} = ${right*right}`;
-            let simpleEq = `${inside}=${right*right}`;
-            let solve = solveSimpleLinear(simpleEq, lang);
-            steps += "\n" + solve.steps;
-            return { result: `x = ${solve.value}`, steps: steps };
-        }
-        // Exponentielle
-        let expMatch = equation.match(/^(\d+)\^x=([+-]?\d*\.?\d*)$/);
-        if (expMatch) {
-            let base = parseFloat(expMatch[1]), right = parseFloat(expMatch[2]);
-            let x = Math.log(right) / Math.log(base);
-            let steps = lang==='fr'
-                ? `${base}^x = ${right}\n• Appliquons ln : x·ln(${base}) = ln(${right})\n• x = ln(${right}) / ln(${base}) = ${x}`
-                : `${base}^x = ${right}\n• Take ln: x·ln(${base}) = ln(${right})\n• x = ln(${right}) / ln(${base}) = ${x}`;
-            return { result: `x = ${x}`, steps: steps };
-        }
-        // Logarithme
-        let logMatch = equation.match(/^ln\((.+)\)=([+-]?\d*\.?\d*)$/);
-        if (logMatch) {
-            let inside = logMatch[1], right = parseFloat(logMatch[2]);
-            let x = Math.exp(right);
-            let steps = lang==='fr'
-                ? `ln(${inside}) = ${right}\n• Appliquons exponentielle : ${inside} = e^${right} = ${x}`
-                : `ln(${inside}) = ${right}\n• Apply exponential: ${inside} = e^${right} = ${x}`;
-            return { result: `${inside} = ${x}`, steps: steps };
-        }
-        // Second degré
-        let quadMatch = equation.match(/^([+-]?\d*\.?\d*)?x²([+-]?\d*\.?\d*)?x?([+-]?\d*\.?\d*)?=0$/);
-        let a = 0, b = 0, c = 0;
-        if (quadMatch) {
-            a = parseFloat(quadMatch[1]) || (quadMatch[1] === '-' ? -1 : (quadMatch[1] === '+' ? 1 : 0));
-            if (isNaN(a)) a = 0;
-            b = parseFloat(quadMatch[2]) || 0;
-            c = parseFloat(quadMatch[3]) || 0;
-        } else if (equation.includes('²')) {
-            let parts = equation.split('=')[0];
-            let matchA = parts.match(/([+-]?\d*\.?\d*?)x²/);
-            a = matchA ? (matchA[1] === '' ? 1 : (matchA[1] === '-' ? -1 : parseFloat(matchA[1]))) : 0;
-            let matchB = parts.match(/([+-]?\d*\.?\d*?)x(?!²)/);
-            b = matchB ? (matchB[1] === '' ? 1 : (matchB[1] === '-' ? -1 : parseFloat(matchB[1]))) : 0;
-            let matchC = parts.match(/([+-]?\d*\.?\d*?)$/);
-            c = matchC ? parseFloat(matchC[1]) : 0;
-            if (isNaN(a)) a = 0;
-        }
-        if (a !== 0 || b !== 0 || c !== 0) {
-            let delta = b*b - 4*a*c;
-            let steps = lang==='fr'
-                ? `Équation : ${a}x² + ${b}x + ${c} = 0\nΔ = b² - 4ac = ${b}² - 4×${a}×${c} = ${delta}`
-                : `Equation: ${a}x² + ${b}x + ${c} = 0\nΔ = b² - 4ac = ${b}² - 4×${a}×${c} = ${delta}`;
-            if (delta > 0) {
-                let x1 = (-b - Math.sqrt(delta)) / (2*a);
-                let x2 = (-b + Math.sqrt(delta)) / (2*a);
-                steps += lang==='fr' ? `\nΔ > 0 → deux solutions :\nx₁ = (-${b} - √${delta})/(2×${a}) = ${x1}\nx₂ = (-${b} + √${delta})/(2×${a}) = ${x2}` : `\nΔ > 0 → two solutions:\nx₁ = (-${b} - √${delta})/(2×${a}) = ${x1}\nx₂ = (-${b} + √${delta})/(2×${a}) = ${x2}`;
-                return { result: `x₁ = ${x1}, x₂ = ${x2}`, steps: steps };
-            } else if (delta === 0) {
-                let x = -b / (2*a);
-                steps += lang==='fr' ? `\nΔ = 0 → une solution double :\nx = -b/(2a) = ${x}` : `\nΔ = 0 → one double solution:\nx = -b/(2a) = ${x}`;
-                return { result: `x = ${x}`, steps: steps };
-            } else {
-                steps += lang==='fr' ? `\nΔ < 0 → pas de solution réelle.` : `\nΔ < 0 → no real solution.`;
-                return { result: lang==='fr' ? "Pas de solution réelle" : "No real solution", steps: steps };
-            }
-        }
-        // Premier degré
-        let linearMatch = equation.match(/^([+-]?\d*\.?\d*)?x?([+-]?\d*\.?\d*)?=([+-]?\d*\.?\d*)$/);
-        if (linearMatch) {
-            let a = parseFloat(linearMatch[1] || (equation.includes('x') ? (equation[0]==='x'?1: (equation[0]==='-'?-1:1)) : 1));
-            let b = parseFloat(linearMatch[2] || 0);
-            let c = parseFloat(linearMatch[3]);
-            let steps = lang==='fr'
-                ? `${a}x + ${b} = ${c}\n${a}x = ${c} - ${b} = ${c-b}\nx = ${(c-b)/a}`
-                : `${a}x + ${b} = ${c}\n${a}x = ${c} - ${b} = ${c-b}\nx = ${(c-b)/a}`;
-            return { result: `x = ${(c-b)/a}`, steps: steps };
-        }
-        return { result: lang==='fr' ? "Format non reconnu" : "Unrecognized format", steps: "" };
-    }
-
-    function solveSimpleLinear(equation, lang) {
-        let match = equation.match(/^([+-]?\d*\.?\d*)?x?=([+-]?\d*\.?\d*)$/);
-        if (match) {
-            let a = parseFloat(match[1] || (equation[0]==='x'?1: (equation[0]==='-'?-1:1)));
-            let c = parseFloat(match[2]);
-            let x = c / a;
-            let steps = lang==='fr' ? `${a}x = ${c} → x = ${x}` : `${a}x = ${c} → x = ${x}`;
-            return { value: x, steps: steps };
-        }
-        return { value: "?", steps: lang==='fr' ? "Non résolu" : "Unsolved" };
-    }
-
     // ================= GESTION FIREBASE =================
     let currentUser = null, currentLang = "fr", progressChart = null;
     async function loginOrRegister() {
@@ -467,7 +308,7 @@
     function escapeHtml(str){ return str.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m)); }
     function toggleTheme(){ document.body.classList.toggle("dark"); localStorage.setItem("theme",document.body.classList.contains("dark")?"dark":"light"); }
     if(localStorage.getItem("theme")==="dark") document.body.classList.add("dark");
-    function setLanguage(lang){ currentLang=lang; document.querySelectorAll(".lang-btn").forEach(b=>b.classList.toggle("active",b.getAttribute("data-lang")===lang)); document.getElementById("siteTitle").innerText=lang==="fr"?"📚 Examens Maths – BEPC / Probatoire / Bac":"📚 Math Exams – BEPC / Probatoire / Bac"; document.getElementById("siteSlogan").innerText=lang==="fr"?"🎯 Résolveur complet + mode examen + suivi des progrès – 100% gratuit":"🎯 Full solver + exam mode + progress tracking – 100% free"; document.getElementById("solverTitle").innerText=lang==="fr"?"🧮 Résolveur avancé":"🧮 Advanced solver"; document.getElementById("solveBtn").innerText=lang==="fr"?"🔍 Résoudre avec démonstration":"🔍 Solve with steps"; document.getElementById("progressTitle").innerHTML=lang==="fr"?"📊 Mes Progrès":"📊 My Progress"; document.getElementById("leaderboardTitle").innerText=lang==="fr"?"🏆 Classement général (examens)":"🏆 Overall ranking (exams)"; document.getElementById("forumTitle").innerText=lang==="fr"?"💬 Forum d'entraide":"💬 Help forum"; document.getElementById("examModeTitle").innerText=lang==="fr"?"⏱️ Mode examen (2h) – BEPC / Bac":"⏱️ Exam mode (2h) – BEPC / Bac"; document.getElementById("generatorTitle").innerText=lang==="fr"?"🎲 Générateur d'exercices":"🎲 Exercise generator"; document.getElementById("annalesTitle").innerText=lang==="fr"?"📄 Annales officielles":"📄 Official past papers"; document.getElementById("footerText").innerHTML=lang==="fr"?"🧡 Gratuit – Résolveur complet + mode examen + suivi. Entraîne-toi et progresse !":"🧡 Free – Full solver + exam mode + tracking. Practice and improve!"; renderExamGen(); displayAnnales(document.querySelector(".annales-btn.active")?.getAttribute("data-annales")); if(currentUser) loadUserStats(); else document.getElementById("progressStats").innerHTML=lang==="fr"?"Connecte-toi pour voir tes stats":"Log in to see your stats"; updateGlobalLeaderboard(); loadForum(); }
+    function setLanguage(lang){ currentLang=lang; document.querySelectorAll(".lang-btn").forEach(b=>b.classList.toggle("active",b.getAttribute("data-lang")===lang)); document.getElementById("siteTitle").innerText=lang==="fr"?"📚 Examens Maths – BEPC / Probatoire / Bac":"📚 Math Exams – BEPC / Probatoire / Bac"; document.getElementById("siteSlogan").innerText=lang==="fr"?"🎯 Annales + mode examen + suivi des progrès – 100% gratuit":"🎯 Past papers + exam mode + progress tracking – 100% free"; document.getElementById("solverTitle").innerText=lang==="fr"?"🧮 Besoin d'aide pour résoudre une équation ?":"🧮 Need help solving an equation?"; document.getElementById("progressTitle").innerHTML=lang==="fr"?"📊 Mes Progrès":"📊 My Progress"; document.getElementById("leaderboardTitle").innerText=lang==="fr"?"🏆 Classement général (examens)":"🏆 Overall ranking (exams)"; document.getElementById("forumTitle").innerText=lang==="fr"?"💬 Forum d'entraide":"💬 Help forum"; document.getElementById("examModeTitle").innerText=lang==="fr"?"⏱️ Mode examen (2h) – BEPC / Bac":"⏱️ Exam mode (2h) – BEPC / Bac"; document.getElementById("generatorTitle").innerText=lang==="fr"?"🎲 Générateur d'exercices":"🎲 Exercise generator"; document.getElementById("annalesTitle").innerText=lang==="fr"?"📄 Annales officielles":"📄 Official past papers"; document.getElementById("footerText").innerHTML=lang==="fr"?"🧡 Gratuit – Mode examen + exercices corrigés + suivi. Entraîne-toi et progresse !":"🧡 Free – Exam mode + solved exercises + tracking. Practice and improve!"; renderExamGen(); displayAnnales(document.querySelector(".annales-btn.active")?.getAttribute("data-annales")); if(currentUser) loadUserStats(); else document.getElementById("progressStats").innerHTML=lang==="fr"?"Connecte-toi pour voir tes stats":"Log in to see your stats"; updateGlobalLeaderboard(); loadForum(); }
 
     document.getElementById("loginBtn").onclick=loginOrRegister;
     document.getElementById("logoutBtn").onclick=logout;
@@ -480,15 +321,6 @@
     document.querySelectorAll(".exam-btn").forEach(btn=>btn.onclick=()=>setExam(btn.getAttribute("data-exam")));
     document.querySelectorAll(".annales-btn").forEach(btn=>btn.onclick=()=>{ document.querySelectorAll(".annales-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); displayAnnales(btn.getAttribute("data-annales")); });
     document.querySelectorAll(".lang-btn").forEach(btn=>btn.onclick=()=>setLanguage(btn.getAttribute("data-lang")));
-    document.getElementById("solveBtn").onclick = () => {
-        let eq = document.getElementById("equationInput").value.trim();
-        if (!eq) { alert(currentLang === "fr" ? "Entrez une équation" : "Enter an equation"); return; }
-        let { result, steps } = solveEquation(eq, currentLang);
-        let resultDiv = document.getElementById("solveResult");
-        resultDiv.style.display = "block";
-        resultDiv.innerHTML = `<strong>📐 ${currentLang === "fr" ? "Résultat :" : "Result:"}</strong> ${result}<br><strong>📖 ${currentLang === "fr" ? "Démonstration :" : "Steps:"}</strong><br><div class="solve-steps">${steps.replace(/\n/g,'<br>')}</div>`;
-        MathJax.typesetPromise([resultDiv]);
-    };
     setExam("college"); setLanguage("fr"); loadForum(); updateGlobalLeaderboard();
 </script>
 </body>
